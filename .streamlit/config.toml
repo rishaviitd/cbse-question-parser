@@ -1,0 +1,19 @@
+[server]
+# Auto-reload settings
+runOnSave = true
+fileWatcherType = "auto"
+
+[theme]
+# App theme settings
+primaryColor = "#FF6B6B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#262730"
+
+[browser]
+# Browser settings
+gatherUsageStats = false
+
+[logger]
+# Logging settings
+level = "info" 

@@ -1,0 +1,244 @@
+{
+  "type": "object",
+  "properties": {
+    "non_question_context": {
+      "type": "array",
+      "description": "Verbatim text of instructions, directions, and section headers found on the page.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "questions": {
+      "type": "array",
+      "description": "An array of all top-level questions on the page.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_identifier": {
+            "type": "string"
+          },
+          "question_text": {
+            "type": "string"
+          },
+          "case_study_context": {
+            "type": "string",
+            "nullable": true
+          },
+          "assertion_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason_text": {
+            "type": "string",
+            "nullable": true
+          },
+          "max_marks": {
+            "type": "number",
+            "nullable": true
+          },
+          "has_diagram": {
+            "type": "boolean"
+          },
+          "question_type": {
+            "type": "string"
+          },
+          "has_subparts": {
+            "type": "boolean"
+          },
+          "has_choices": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "option_identifier": {
+                  "type": "string"
+                },
+                "option_text": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "sub_parts": {
+            "type": "array",
+            "description": "An array of sub-part question objects.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question_identifier": {
+                  "type": "string"
+                },
+                "question_text": {
+                  "type": "string"
+                },
+                "max_marks": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "has_diagram": {
+                  "type": "boolean"
+                },
+                "question_type": {
+                  "type": "string"
+                },
+                "has_choices": {
+                  "type": "boolean"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "option_identifier": {
+                        "type": "string"
+                      },
+                      "option_text": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "choices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "question_identifier": {
+                        "type": "string"
+                      },
+                      "question_text": {
+                        "type": "string"
+                      },
+                      "max_marks": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "has_diagram": {
+                        "type": "boolean"
+                      },
+                      "question_type": {
+                        "type": "string"
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "option_identifier": {
+                              "type": "string"
+                            },
+                            "option_text": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "choices": {
+            "type": "array",
+            "description": "An array of choice question objects.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "question_identifier": {
+                  "type": "string"
+                },
+                "question_text": {
+                  "type": "string"
+                },
+                "case_study_context": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "assertion_text": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "reason_text": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "max_marks": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "has_diagram": {
+                  "type": "boolean"
+                },
+                "question_type": {
+                  "type": "string"
+                },
+                "has_subparts": {
+                  "type": "boolean"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "option_identifier": {
+                        "type": "string"
+                      },
+                      "option_text": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "sub_parts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "question_identifier": {
+                        "type": "string"
+                      },
+                      "question_text": {
+                        "type": "string"
+                      },
+                      "max_marks": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "has_diagram": {
+                        "type": "boolean"
+                      },
+                      "question_type": {
+                        "type": "string"
+                      },
+                      "has_choices": {
+                        "type": "boolean"
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "option_identifier": {
+                              "type": "string"
+                            },
+                            "option_text": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

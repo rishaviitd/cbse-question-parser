@@ -1,29 +1,88 @@
-streamlit==1.28.1
-watchdog==6.0.0
-PyMuPDF
-python-dotenv
-google-genai 
-boto3==1.38.36
+import os
+import re
+import hashlib
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
-doclayout-yolo==0.0.4
-huggingface_hub
-pdf2image==1.16.3
+load_dotenv()
 
-# FastAPI server dependencies
-fastapi==0.104.1
-uvicorn==0.24.0
-python-multipart==0.0.6
-pydantic==2.5.0
+# Environment variable for your Gemini API key
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise RuntimeError("Environment variable GEMINI_API_KEY must be set")
 
+def extract_markdown_from_response(response_text: str) -> str:
+    """
+    Extract markdown content from Gemini response that contains a ```markdown code block.
+    
+    Args:
+        response_text (str): Raw response text from Gemini
+    
+    Returns:
+        str: Extracted markdown content
+    """
+    # Look for markdown code block patterns
+    patterns = [
+        r'```markdown\s*\n(.*?)\n```',  # Standard markdown block
+        r'```\s*\n(.*?)\n```',         # Generic code block
+        r'```markdown(.*?)```',         # Inline markdown block
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, response_text, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+    
+    # If no code block found, look for content after a specific marker
+    # Look for content after "```markdown" or similar indicators
+    lines = response_text.split('\n')
+    markdown_start = -1
+    
+    for i, line in enumerate(lines):
+        if '```markdown' in line.lower():
+            markdown_start = i + 1
+            break
+        elif line.strip() == '```' and i > 0 and any(keyword in lines[i-1].lower() for keyword in ['markdown', 'final', 'output']):
+            markdown_start = i + 1
+            break
+    
+    if markdown_start >= 0:
+        # Find the end of the markdown block
+        markdown_end = len(lines)
+        for i in range(markdown_start, len(lines)):
+            if lines[i].strip() == '```':
+                markdown_end = i
+                break
+        
+        # Extract the markdown content
+        markdown_lines = lines[markdown_start:markdown_end]
+        return '\n'.join(markdown_lines).strip()
+    
+    # If still no markdown found, return the original response
+    # This handles cases where the response doesn't use code blocks
+    return response_text.strip()
 
-
-here I want to add another tab called full-pdf-question-extraction
-
-where the pdf will be sent with this system and user prompt to the gemini model
-
-write the code in a new file called full-pdf-question-extraction
-
-where this will be the system prompt
+def extract_questions_from_pdf(pdf_path: str) -> tuple[str, str]:
+    """
+    Sends a PDF to Gemini LLM to extract questions only from CBSE Mathematics exam papers.
+    
+    Args:
+        pdf_path (str): Path to the PDF file to be processed
+    
+    Returns:
+        tuple[str, str]: Tuple containing:
+            - Path to the generated Markdown file with extracted questions
+            - Path to the raw response file from Gemini
+    """
+    # Initialize Gemini client
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    
+    # Upload file to Gemini
+    pdf_file = client.files.upload(file=pdf_path)
+    
+    # System prompt for question extraction
+    system_prompt = """
 # CBSE Mathematics Question Extraction Assistant
 
 ## Core Identity
@@ -152,8 +211,10 @@ Before submitting, confirm:
 5. **Proper Separation**: Each question clearly demarcated with [####]
 
 Focus on precision, completeness, and clean Markdown output while maintaining absolute fidelity to the original question content.
+"""
 
-and below will be the user prompt
+    # User prompt for question extraction
+    user_prompt = """
 # Chain of Thought Question Extraction Prompt
 
 **TASK:** Extract ONLY the questions from a mathematics exam paper with precise formatting using systematic chain-of-thought reasoning.
@@ -307,5 +368,80 @@ After your complete analysis, provide the final extracted questions using this e
 ```
 
 **ACCURACY REQUIREMENT:** This systematic approach ensures 100% accuracy with no omissions, no additions, and no modifications to the original content. Every step must be completed before proceeding to the next, ensuring comprehensive analysis and perfect extraction. The markdown code block should contain ONLY the extracted questions, not the analysis steps.
+"""
+    
+    # Set up safety settings
+    safety_settings = [
+        {
+            "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            "threshold": "BLOCK_MEDIUM_AND_ABOVE",
+        }
+    ]
+    
+    # Configure generation with explicit thinking tokens
+    config = types.GenerateContentConfig(
+        temperature=0,
+        max_output_tokens=60000,
+        response_mime_type="text/plain",
+        safety_settings=safety_settings,
+        # thinking_config=types.ThinkingConfig(
+        #     thinking_budget=1000
+        # )
+    )
+    
+    try:
+        # Generate response
+        response = client.models.generate_content(
+            model="gemini-2.5-flash-lite-preview-06-17",
+            contents=[pdf_file, system_prompt, user_prompt],
+            config=config,
+        )
+        
+        # Clean up uploaded file
+        client.files.delete(name=pdf_file.name)
+        
+        # Extract plain text markdown
+        raw_response = response.text.strip() if hasattr(response, 'text') else ''
+        
+        if not raw_response:
+            raise ValueError("No response content generated")
+        
+        # Extract markdown content from code block (clean version for questions file)
+        markdown_text = extract_markdown_from_response(raw_response)
+        
+        # Determine output path in full_pdf_questions directory
+        base_dir = os.path.join(os.path.dirname(__file__), '..', 'logs', 'full_pdf_questions')
+        os.makedirs(base_dir, exist_ok=True)
+        
+        # Use the exact original filename with .md extension
+        base_filename = os.path.basename(pdf_path).replace('.pdf', '')
+        output_filename = f"{base_filename}.md"
+        raw_output_filename = f"{base_filename}_raw_response.txt"
+        
+        output_path = os.path.join(base_dir, output_filename)
+        raw_output_path = os.path.join(base_dir, raw_output_filename)
+        
+        # Save extracted markdown to file (clean version without code blocks)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(markdown_text)
+        
+        # Save raw response to file (original response with code blocks preserved)
+        with open(raw_output_path, 'w', encoding='utf-8') as f:
+            f.write(raw_response)
+        
+        return output_path, raw_output_path
+    
+    except Exception as e:
+        # Ensure file is deleted even if an error occurs
+        try:
+            client.files.delete(name=pdf_file.name)
+        except:
+            pass
+        
+        raise RuntimeError(f"Question extraction failed: {str(e)}")
 
-now create this new file and add this code 
+if __name__ == "__main__":
+    # Quick test: replace 'test_paper.pdf' with your actual PDF path
+    questions_path, raw_path = extract_questions_from_pdf("test_paper.pdf")
+    print(f"Questions extracted and saved to: {questions_path}")
+    print(f"Raw response saved to: {raw_path}") 

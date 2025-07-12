@@ -55,7 +55,8 @@ def extract_diagrams_from_pdf(file_path: str, conf_threshold: float = 0.25, iou_
     results = []
     figure_snippets = []  # per-page list of figure crops
     with open(file_path, 'rb') as f:
-        pages = convert_from_bytes(f.read())
+        # Convert PDF pages at high resolution for sharp diagrams
+        pages = convert_from_bytes(f.read(), dpi=300)
     for page in pages:
         det_res = _model.predict(
             page,
